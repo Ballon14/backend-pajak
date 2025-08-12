@@ -1,0 +1,75 @@
+const express = require("express")
+const { body } = require("express-validator")
+const { authenticateToken, isAdmin } = require("../middlewares/auth")
+const controller = require("../controllers/admin.controller")
+
+const router = express.Router()
+
+router.get("/users", authenticateToken, isAdmin, controller.listUsers)
+router.get("/users/:id", authenticateToken, isAdmin, controller.getUserById)
+router.put(
+    "/users/:id",
+    authenticateToken,
+    isAdmin,
+    [
+        body("name")
+            .optional()
+            .isString()
+            .notEmpty()
+            .withMessage("Nama harus diisi"),
+        body("email").optional().isEmail().withMessage("Email harus valid"),
+        body("is_admin")
+            .optional()
+            .isBoolean()
+            .withMessage("is_admin harus boolean"),
+        body("is_active")
+            .optional()
+            .isBoolean()
+            .withMessage("is_active harus boolean"),
+    ],
+    controller.updateUser
+)
+router.delete("/users/:id", authenticateToken, isAdmin, controller.deleteUser)
+router.put(
+    "/users/:id/toggle-status",
+    authenticateToken,
+    isAdmin,
+    controller.toggleUserStatus
+)
+
+router.get(
+    "/tax-records",
+    authenticateToken,
+    isAdmin,
+    controller.listAllTaxRecords
+)
+router.get(
+    "/tax-records/:id",
+    authenticateToken,
+    isAdmin,
+    controller.getTaxRecordById
+)
+router.put(
+    "/tax-records/:id",
+    authenticateToken,
+    isAdmin,
+    [
+        body("name").notEmpty().withMessage("Nama harus diisi"),
+        body("address").notEmpty().withMessage("Alamat harus diisi"),
+        body("tax_type").notEmpty().withMessage("Jenis pajak harus diisi"),
+        body("spt_number").notEmpty().withMessage("Nomor SPT harus diisi"),
+        body("year")
+            .isInt({ min: 2000, max: 2030 })
+            .withMessage("Tahun harus valid"),
+        body("amount")
+            .isFloat({ min: 0 })
+            .withMessage("Jumlah pajak harus valid"),
+        body("status")
+            .isIn(["belum_lunas", "proses", "lunas"])
+            .withMessage("Status tidak valid"),
+    ],
+    controller.updateTaxRecord
+)
+router.get("/statistics", authenticateToken, isAdmin, controller.statistics)
+
+module.exports = router

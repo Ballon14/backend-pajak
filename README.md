@@ -22,12 +22,15 @@ npm install
 
 ### 2. Setup Environment Variables
 
-Buat file `.env` dengan konfigurasi berikut:
+Buat file `.env` (opsional, sudah ada default yang aman untuk dev):
 
 ```
 PORT=8000
-MONGODB_URI=mongodb://iqbal:iqbal@100.64.75.107:27017/relajak
+MONGODB_URI=mongodb://iqbal:iqbal@100.64.75.107:27017/exrejak?authSource=admin
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+CORS_ORIGINS=*
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
 NODE_ENV=development
 ```
 
@@ -139,3 +142,14 @@ Gunakan `npm run dev` untuk development dengan nodemon.
 ### Database
 
 Data tersimpan di MongoDB database `relajak` pada server remote.
+
+### Development structure
+
+-   `src/server.js` server bootstrap (start HTTP, DB connect, seed)
+-   `src/app.js` Express app, middleware, routes
+-   `src/config/` env, db
+-   `src/models/` Mongoose models
+-   `src/controllers/` route handlers
+-   `src/routes/` route definitions
+-   `src/middlewares/` auth + error handler
+-   `src/utils/seed.js` seeding data
