@@ -13,6 +13,11 @@ const required = (value, fallback) => {
 
 const NODE_ENV = required(process.env.NODE_ENV, "development")
 
+const toBool = (v, fallback = false) => {
+    if (typeof v === "undefined") return fallback
+    return ["1", "true", "yes", "on"].includes(String(v).toLowerCase())
+}
+
 module.exports = {
     nodeEnv: NODE_ENV,
     isProduction: NODE_ENV === "production",
@@ -36,9 +41,12 @@ module.exports = {
         .filter(Boolean),
 
     rateLimit: {
-        windowMs: Number(
-            required(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000)
-        ),
+        windowMs: Number(required(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000)),
         max: Number(required(process.env.RATE_LIMIT_MAX, 100)),
+    },
+
+    seed: {
+        admin: toBool(process.env.SEED_ADMIN, true),
+        sample: toBool(process.env.SEED_SAMPLE, false),
     },
 }

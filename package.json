@@ -16,7 +16,8 @@
         "prevent-duplicates": "echo 'removed'",
         "test-reports": "echo 'removed'",
         "test-edit": "echo 'removed'",
-        "debug-edit": "echo 'removed'"}
+        "debug-edit": "echo 'removed'",
+        "cleanup:sample": "node scripts/cleanup-sample.js"
     },
     "keywords": [
         "express",

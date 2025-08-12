@@ -1,30 +1,40 @@
-# PajakApp Backend (Express.js)
+# PajakApp Backend (Node.js, Express, MongoDB)
 
-Backend API untuk aplikasi PajakApp menggunakan Express.js dan MongoDB.
+Backend API untuk pengelolaan data pajak (PBB) dengan autentikasi JWT, validasi input, statistik, laporan, dan role admin.
+
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org) [![Express](https://img.shields.io/badge/Express-4.x-black.svg)](https://expressjs.com) [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248.svg)](https://mongoosejs.com) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+---
 
 ## Fitur
 
--   ✅ Autentikasi JWT
--   ✅ CRUD Tax Records
--   ✅ Statistik Dashboard
--   ✅ Admin Routes
--   ✅ Validasi Input
--   ✅ Error Handling
--   ✅ CORS Support
+- Autentikasi JWT (register, login, me, logout)
+- CRUD Tax Records + validasi input
+- Statistik pengguna dan admin
+- Laporan ringkasan dan per-properti (date range)
+- Role-based access (Admin)
+- Keamanan & performa: Helmet, Rate Limit, CORS, Compression, Logging
+- Health check endpoint
 
-## Setup
+## Teknologi
 
-### 1. Install Dependencies
+- Node.js, Express.js
+- MongoDB + Mongoose
+- JSON Web Token (JWT)
+- express-validator
 
+---
+
+## Quick Start
+
+1) Install dependencies
 ```bash
 npm install
 ```
 
-### 2. Setup Environment Variables
-
-Buat file `.env` (opsional, sudah ada default yang aman untuk dev):
-
-```
+2) Konfigurasi environment (opsional — sudah ada default aman untuk dev)
+Buat file `.env` di root proyek:
+```env
 PORT=8000
 MONGODB_URI=mongodb://iqbal:iqbal@100.64.75.107:27017/exrejak?authSource=admin
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
@@ -34,122 +44,150 @@ RATE_LIMIT_MAX=100
 NODE_ENV=development
 ```
 
-### 3. Pastikan MongoDB Berjalan
-
-Database menggunakan MongoDB remote:
-
-```
-mongodb://iqbal:iqbal@100.64.75.107:27017/relajak
-```
-
-### 4. Jalankan Server
-
+3) Jalankan server (development)
 ```bash
-# Development mode
 npm run dev
-
-# Production mode
-npm start
 ```
 
-## API Endpoints
+4) Cek health
+```bash
+curl http://localhost:8000/health
+# {"status":"ok"}
+```
 
-### Authentication
+API Base URL: `http://localhost:8000/api`
 
--   `POST /api/auth/register` - Register user baru
--   `POST /api/auth/login` - Login user
--   `POST /api/auth/logout` - Logout user
--   `GET /api/auth/user` - Get user data
+---
 
-### Tax Records
+## Struktur Proyek
 
--   `GET /api/tax-records` - Get semua tax records user
--   `GET /api/tax-records/statistics` - Get statistik dashboard
--   `POST /api/tax-records` - Create tax record baru
--   `GET /api/tax-records/:id` - Get tax record by ID
--   `PUT /api/tax-records/:id` - Update tax record
--   `DELETE /api/tax-records/:id` - Delete tax record
+```text
+src/
+  app.js                 # Inisialisasi Express, middleware, routes
+  server.js              # Bootstrap server, DB connect, seed
+  config/
+    env.js               # Konfigurasi environment
+    db.js                # Koneksi MongoDB (Mongoose)
+  controllers/           # Logika bisnis per domain
+    auth.controller.js
+    tax.controller.js
+    admin.controller.js
+    reports.controller.js
+  middlewares/
+    auth.js              # JWT auth & admin guard
+    errorHandler.js      # 404 & centralized error handler
+  models/
+    User.js
+    TaxRecord.js
+  routes/
+    auth.routes.js
+    tax.routes.js
+    admin.routes.js
+    reports.routes.js
+  utils/
+    seed.js              # Seeding default user & contoh data
+```
 
-### Admin Routes
+---
 
--   `GET /api/admin/users` - Get semua users (admin only)
+## Endpoints Inti (ringkas)
 
-## Default User
+- Auth (`/api/auth`)
+  - `POST /register`
+  - `POST /login`
+  - `POST /logout` (auth)
+  - `GET /user` (auth)
 
-Saat pertama kali menjalankan server, akan dibuat user default:
+- Tax Records (`/api/tax-records`, auth)
+  - `GET /` (list)
+  - `POST /` (create)
+  - `GET /:id`
+  - `PUT /:id`
+  - `DELETE /:id`
+  - `GET /statistics`
+  - `GET /outstanding`
+  - `GET /year/:year`
+  - `GET /check-year`
+  - `POST /auto-create`
 
--   **Email**: `iqbaldev.site@gmail.com`
--   **Password**: `iqbaldev.site`
--   **Name**: `Admin Iqbal`
+- Reports (`/api/reports`, auth)
+  - `GET /summary?dateRange=this_year|this_month|last_month|this_quarter|last_year`
+  - `GET /property?dateRange=...`
 
-## Sample Data
+- Admin (`/api/admin`, auth + admin)
+  - `GET /users`, `GET /users/:id`, `PUT /users/:id`, `DELETE /users/:id`, `PUT /users/:id/toggle-status`
+  - `GET /tax-records`, `GET /tax-records/:id`, `PUT /tax-records/:id`
+  - `GET /statistics`
 
-Server akan otomatis membuat sample tax records untuk user default:
+- Health
+  - `GET /health`
 
-1. **SPT-2024-001**: Rp 2.500.000 (Lunas)
-2. **SPT-2024-002**: Rp 2.800.000 (Belum Lunas)
-3. **SPT-2023-001**: Rp 2.200.000 (Lunas)
+---
 
-**Total**: Rp 7.500.000
-**Lunas**: Rp 4.700.000
-**Belum Lunas**: Rp 2.800.000
+## Contoh Penggunaan
 
-## Testing
-
-### Test Login
-
+Login default (dibuat otomatis saat start):
 ```bash
 curl -X POST http://localhost:8000/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"iqbaldev.site@gmail.com","password":"iqbaldev.site"}'
 ```
 
-### Test Statistics
-
+Ambil statistik (ganti `YOUR_TOKEN`):
 ```bash
-curl -X GET http://localhost:8000/api/tax-records/statistics \
-  -H "Authorization: Bearer YOUR_TOKEN_HERE"
+curl -H "Authorization: Bearer YOUR_TOKEN" \
+  http://localhost:8000/api/tax-records/statistics
 ```
 
-## Troubleshooting
+---
 
-### MongoDB Connection Error
+## Skrip NPM
 
--   Pastikan kredensial MongoDB benar
--   Periksa koneksi internet ke server MongoDB
--   Periksa connection string di `.env`
+```json
+{
+  "dev": "nodemon src/server.js",
+  "start": "node src/server.js",
+  "lint": "echo 'add linter here'",
+  "test": "echo 'no tests'"
+}
+```
 
-### JWT Token Error
+---
 
--   Periksa JWT_SECRET di `.env`
--   Pastikan token tidak expired
+## Keamanan & Performa
 
-### CORS Error
+- Helmet: header keamanan default
+- Rate Limit: dibatasi via `RATE_LIMIT_WINDOW_MS` & `RATE_LIMIT_MAX`
+- CORS: whitelist melalui `CORS_ORIGINS` (pisahkan dengan koma). `*` untuk dev
+- Compression: gzip responses
+- Logging: morgan (format `dev` saat development, `combined` saat production)
 
--   CORS sudah dikonfigurasi untuk development
--   Untuk production, sesuaikan origin di `cors()`
+---
 
-## Development
+## Default User & Seeding
 
-### Logs
+Saat server pertama kali berjalan, otomatis dibuat user admin dan contoh data:
+- Email: `iqbaldev.site@gmail.com`
+- Password: `iqbaldev.site`
 
-Server akan menampilkan log untuk setiap request dan error.
+Catatan: ubah password dan `JWT_SECRET` saat production.
 
-### Hot Reload
+Kontrol seeding via ENV:
+```env
+SEED_ADMIN=true   # buat admin default (default: true)
+SEED_SAMPLE=false # JANGAN buat data sample (default: false)
+```
 
-Gunakan `npm run dev` untuk development dengan nodemon.
+---
 
-### Database
+## Troubleshooting (singkat)
 
-Data tersimpan di MongoDB database `relajak` pada server remote.
+- Gagal konek MongoDB: cek `MONGODB_URI`, konektivitas ke host/port, dan kredensial
+- 401 Unauthorized: pastikan `Authorization: Bearer <token>` benar & belum kadaluarsa
+- CORS error: atur `CORS_ORIGINS` agar mengizinkan origin frontend
 
-### Development structure
+---
 
--   `src/server.js` server bootstrap (start HTTP, DB connect, seed)
--   `src/app.js` Express app, middleware, routes
--   `src/config/` env, db
--   `src/models/` Mongoose models
--   `src/controllers/` route handlers
--   `src/routes/` route definitions
--   `src/middlewares/` auth + error handler
--   `src/utils/seed.js` seeding data
+## Lisensi
+
+MIT
