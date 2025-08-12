@@ -3,9 +3,9 @@ const TaxRecord = require("../models/TaxRecord")
 
 async function list(req, res) {
     try {
-        const taxRecords = await TaxRecord.find({
-            user_id: req.user.user_id,
-        }).sort({ createdAt: -1 })
+        const taxRecords = await TaxRecord.find({ user_id: req.user.user_id })
+            .sort({ createdAt: -1 })
+            .lean()
         res.json({
             success: true,
             message: "Data PBB berhasil diambil",
@@ -23,13 +23,11 @@ async function create(req, res) {
     try {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
-            return res
-                .status(422)
-                .json({
-                    success: false,
-                    message: "Validasi gagal",
-                    errors: errors.array(),
-                })
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
         }
         const taxRecord = new TaxRecord({
             ...req.body,
@@ -77,13 +75,11 @@ async function update(req, res) {
     try {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
-            return res
-                .status(422)
-                .json({
-                    success: false,
-                    message: "Validasi gagal",
-                    errors: errors.array(),
-                })
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
         }
         const taxRecord = await TaxRecord.findOneAndUpdate(
             { _id: req.params.id, user_id: req.user.user_id },
@@ -130,11 +126,21 @@ async function remove(req, res) {
 
 async function statistics(req, res) {
     try {
-        const taxRecords = await TaxRecord.find({ user_id: req.user.user_id })
+        const taxRecords = await TaxRecord.find({
+            user_id: req.user.user_id,
+        }).lean()
         if (taxRecords.length === 0) {
-            return res
-                .status(404)
-                .json({ success: false, message: "Data PBB tidak ditemukan" })
+            return res.json({
+                success: true,
+                data: {
+                    total_tax: 0,
+                    paid_tax: 0,
+                    unpaid_tax: 0,
+                    total_records: 0,
+                    paid_records: 0,
+                    unpaid_records: 0,
+                },
+            })
         }
         const totalTax = taxRecords.reduce(
             (sum, record) => sum + record.amount,
@@ -203,7 +209,7 @@ async function propertyReport(req, res) {
         const taxRecords = await TaxRecord.find({
             user_id: req.user.user_id,
             createdAt: { $gte: startDate, $lte: endDate },
-        })
+        }).lean()
         const propertyGroups = {}
         taxRecords.forEach((record) => {
             const propertyType = record.tax_type || "Lainnya"
@@ -280,7 +286,9 @@ async function byYear(req, res) {
         const taxRecords = await TaxRecord.find({
             user_id: req.user.user_id,
             year,
-        }).sort({ createdAt: -1 })
+        })
+            .sort({ createdAt: -1 })
+            .lean()
         const totalAmount = taxRecords.reduce(
             (sum, record) => sum + record.amount,
             0

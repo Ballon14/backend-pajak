@@ -26,5 +26,11 @@ const taxRecordSchema = new mongoose.Schema(
     { timestamps: true }
 )
 
+// Performance indexes for common queries
+taxRecordSchema.index({ user_id: 1, createdAt: -1 })
+taxRecordSchema.index({ user_id: 1, year: -1, createdAt: -1 })
+taxRecordSchema.index({ user_id: 1, status: 1, createdAt: -1 })
+taxRecordSchema.index({ spt_number: 1 })
+
 module.exports =
     mongoose.models.TaxRecord || mongoose.model("TaxRecord", taxRecordSchema)
