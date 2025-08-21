@@ -5,6 +5,7 @@ const {
     login,
     getMe,
     logout,
+    adminContact,
 } = require("../controllers/auth.controller")
 const { authenticateToken } = require("../middlewares/auth")
 
@@ -33,5 +34,6 @@ router.post(
 
 router.post("/logout", authenticateToken, logout)
 router.get("/user", authenticateToken, getMe)
+router.get("/admin-contact", authenticateToken, adminContact)
 
 module.exports = router

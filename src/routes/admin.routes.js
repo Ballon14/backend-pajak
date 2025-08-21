@@ -7,6 +7,24 @@ const router = express.Router()
 
 router.get("/users", authenticateToken, isAdmin, controller.listUsers)
 router.get("/users/:id", authenticateToken, isAdmin, controller.getUserById)
+
+// Create user (admin)
+router.post(
+    "/users",
+    authenticateToken,
+    isAdmin,
+    [
+        body("name").notEmpty().withMessage("Nama harus diisi"),
+        body("email").isEmail().withMessage("Email harus valid"),
+        body("password")
+            .isLength({ min: 6 })
+            .withMessage("Password minimal 6 karakter"),
+        body("is_admin").optional().isBoolean(),
+        body("is_active").optional().isBoolean(),
+    ],
+    controller.createUser
+)
+
 router.put(
     "/users/:id",
     authenticateToken,
@@ -43,6 +61,31 @@ router.get(
     isAdmin,
     controller.listAllTaxRecords
 )
+
+// Admin create tax record for any user
+router.post(
+    "/tax-records",
+    authenticateToken,
+    isAdmin,
+    [
+        body("user_id").notEmpty().withMessage("User harus dipilih"),
+        body("name").notEmpty().withMessage("Nama harus diisi"),
+        body("address").notEmpty().withMessage("Alamat harus diisi"),
+        body("tax_type").notEmpty().withMessage("Jenis pajak harus diisi"),
+        body("spt_number").notEmpty().withMessage("Nomor SPT harus diisi"),
+        body("year")
+            .isInt({ min: 2000, max: 2035 })
+            .withMessage("Tahun harus valid"),
+        body("amount")
+            .isFloat({ min: 0 })
+            .withMessage("Jumlah pajak harus valid"),
+        body("status")
+            .isIn(["belum_lunas", "proses", "lunas"])
+            .withMessage("Status tidak valid"),
+    ],
+    controller.createTaxRecord
+)
+
 router.get(
     "/tax-records/:id",
     authenticateToken,

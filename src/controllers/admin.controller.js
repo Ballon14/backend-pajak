@@ -1,17 +1,81 @@
 const { validationResult } = require("express-validator")
+const bcrypt = require("bcryptjs")
 const User = require("../models/User")
 const TaxRecord = require("../models/TaxRecord")
 
 async function listUsers(req, res) {
     try {
-        const users = await User.find()
+        const filter = {}
+        if (typeof req.query.is_admin !== "undefined") {
+            filter.is_admin =
+                String(req.query.is_admin) === "true" ||
+                req.query.is_admin === "1"
+        }
+        if (typeof req.query.is_active !== "undefined") {
+            filter.is_active =
+                String(req.query.is_active) === "true" ||
+                req.query.is_active === "1"
+        }
+        const limit = Math.max(1, Math.min(200, Number(req.query.limit) || 50))
+        const users = await User.find(filter)
             .select("-password")
             .sort({ createdAt: -1 })
-        res.json({ success: true, data: { data: users } })
+            .limit(limit)
+        res.json({ success: true, data: { data: users, total: users.length } })
     } catch (error) {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat mengambil data users",
+        })
+    }
+}
+
+// Admin create user
+async function createUser(req, res) {
+    try {
+        const errors = validationResult(req)
+        if (!errors.isEmpty()) {
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
+        }
+
+        const {
+            name,
+            email,
+            password,
+            is_admin = false,
+            is_active = true,
+        } = req.body
+        const existing = await User.findOne({ email })
+        if (existing) {
+            return res.status(409).json({
+                success: false,
+                message: "Email sudah digunakan oleh user lain",
+            })
+        }
+        const hashed = await bcrypt.hash(password, 10)
+        const user = new User({
+            name,
+            email,
+            password: hashed,
+            is_admin,
+            is_active,
+        })
+        await user.save()
+        const sanitized = user.toObject()
+        delete sanitized.password
+        res.status(201).json({
+            success: true,
+            message: "User berhasil dibuat",
+            data: sanitized,
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan saat membuat user",
         })
     }
 }
@@ -36,13 +100,11 @@ async function updateUser(req, res) {
     try {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
-            return res
-                .status(422)
-                .json({
-                    success: false,
-                    message: "Validasi gagal",
-                    errors: errors.array(),
-                })
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
         }
         const { name, email, is_admin, is_active } = req.body
         if (email) {
@@ -51,12 +113,10 @@ async function updateUser(req, res) {
                 _id: { $ne: req.params.id },
             })
             if (existing) {
-                return res
-                    .status(409)
-                    .json({
-                        success: false,
-                        message: "Email sudah digunakan oleh user lain",
-                    })
+                return res.status(409).json({
+                    success: false,
+                    message: "Email sudah digunakan oleh user lain",
+                })
             }
         }
         const updateFields = {}
@@ -80,12 +140,10 @@ async function updateUser(req, res) {
         })
     } catch (error) {
         if (error && error.code === 11000) {
-            return res
-                .status(409)
-                .json({
-                    success: false,
-                    message: "Email sudah digunakan oleh user lain",
-                })
+            return res.status(409).json({
+                success: false,
+                message: "Email sudah digunakan oleh user lain",
+            })
         }
         res.status(500).json({
             success: false,
@@ -216,13 +274,11 @@ async function updateTaxRecord(req, res) {
     try {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
-            return res
-                .status(422)
-                .json({
-                    success: false,
-                    message: "Validasi gagal",
-                    errors: errors.array(),
-                })
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
         }
         const taxRecord = await TaxRecord.findById(req.params.id)
         if (!taxRecord)
@@ -280,6 +336,70 @@ async function updateTaxRecord(req, res) {
     }
 }
 
+// Admin create tax record for any user
+async function createTaxRecord(req, res) {
+    try {
+        const errors = validationResult(req)
+        if (!errors.isEmpty()) {
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
+        }
+
+        const { user_id } = req.body
+        const targetUser = await User.findById(user_id)
+        if (!targetUser) {
+            return res
+                .status(404)
+                .json({ success: false, message: "User tidak ditemukan" })
+        }
+
+        const taxRecord = new TaxRecord({
+            user_id,
+            name: req.body.name,
+            address: req.body.address,
+            tax_type: req.body.tax_type,
+            spt_number: req.body.spt_number,
+            year: req.body.year,
+            amount: req.body.amount,
+            description: req.body.description || "",
+            status: req.body.status,
+            due_date: req.body.due_date ? new Date(req.body.due_date) : null,
+            payment_date: req.body.payment_date
+                ? new Date(req.body.payment_date)
+                : null,
+            notes: req.body.notes || "",
+        })
+
+        await taxRecord.save()
+        res.status(201).json({
+            success: true,
+            message: "Data pajak berhasil ditambahkan",
+            data: {
+                id: taxRecord._id,
+                name: taxRecord.name,
+                address: taxRecord.address,
+                tax_type: taxRecord.tax_type,
+                spt_number: taxRecord.spt_number,
+                year: taxRecord.year,
+                amount: taxRecord.amount,
+                description: taxRecord.description,
+                status: taxRecord.status,
+                due_date: taxRecord.due_date,
+                payment_date: taxRecord.payment_date,
+                notes: taxRecord.notes,
+            },
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan saat menambahkan data pajak",
+        })
+    }
+}
+
 async function statistics(req, res) {
     try {
         const totalUsers = await User.countDocuments()
@@ -324,6 +444,7 @@ async function statistics(req, res) {
 
 module.exports = {
     listUsers,
+    createUser,
     getUserById,
     updateUser,
     deleteUser,
@@ -331,5 +452,6 @@ module.exports = {
     listAllTaxRecords,
     getTaxRecordById,
     updateTaxRecord,
+    createTaxRecord,
     statistics,
 }

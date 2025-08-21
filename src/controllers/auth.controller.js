@@ -8,13 +8,11 @@ async function register(req, res) {
     try {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
-            return res
-                .status(422)
-                .json({
-                    success: false,
-                    message: "Validasi gagal",
-                    errors: errors.array(),
-                })
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
         }
         const { name, email, password } = req.body
         const existingUser = await User.findOne({ email })
@@ -51,13 +49,11 @@ async function login(req, res) {
     try {
         const errors = validationResult(req)
         if (!errors.isEmpty()) {
-            return res
-                .status(422)
-                .json({
-                    success: false,
-                    message: "Validasi gagal",
-                    errors: errors.array(),
-                })
+            return res.status(422).json({
+                success: false,
+                message: "Validasi gagal",
+                errors: errors.array(),
+            })
         }
         const { email, password } = req.body
         const user = await User.findOne({ email })
@@ -130,4 +126,26 @@ function logout(req, res) {
     res.json({ success: true, message: "Logout berhasil" })
 }
 
-module.exports = { register, login, getMe, logout }
+async function adminContact(req, res) {
+    try {
+        const admin = await User.findOne({ is_admin: true, is_active: true })
+            .select("_id name email is_admin is_active")
+            .sort({ createdAt: 1 })
+        if (!admin) {
+            return res
+                .status(404)
+                .json({ success: false, message: "Admin tidak ditemukan" })
+        }
+        res.json({
+            success: true,
+            data: { id: admin._id, name: admin.name, email: admin.email },
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Gagal mengambil kontak admin",
+        })
+    }
+}
+
+module.exports = { register, login, getMe, logout, adminContact }
