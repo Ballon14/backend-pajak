@@ -154,13 +154,41 @@ async function updateUser(req, res) {
 
 async function deleteUser(req, res) {
     try {
-        const deleted = await User.findByIdAndDelete(req.params.id)
-        if (!deleted)
+        const userId = req.params.id
+
+        // Check if user exists
+        const user = await User.findById(userId)
+        if (!user) {
             return res
                 .status(404)
                 .json({ success: false, message: "User tidak ditemukan" })
+        }
+
+        // Check if user is trying to delete themselves
+        if (String(userId) === String(req.user.user_id)) {
+            return res
+                .status(400)
+                .json({
+                    success: false,
+                    message: "Tidak dapat menghapus akun sendiri",
+                })
+        }
+
+        // Delete all tax records associated with this user
+        await TaxRecord.deleteMany({ user_id: userId })
+
+        // Delete all messages associated with this user
+        const Message = require("../models/Message")
+        await Message.deleteMany({
+            $or: [{ sender_id: userId }, { receiver_id: userId }],
+        })
+
+        // Delete the user
+        await User.findByIdAndDelete(userId)
+
         res.json({ success: true, message: "User berhasil dihapus" })
     } catch (error) {
+        console.error("Error deleting user:", error)
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat menghapus user",

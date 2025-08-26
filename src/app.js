@@ -16,6 +16,7 @@ const authRoutes = require("./routes/auth.routes")
 const taxRoutes = require("./routes/tax.routes")
 const adminRoutes = require("./routes/admin.routes")
 const reportsRoutes = require("./routes/reports.routes")
+const messageRoutes = require("./routes/message.routes")
 
 const app = express()
 
@@ -62,6 +63,7 @@ app.use("/api/auth", authRoutes)
 app.use("/api/tax-records", taxRoutes)
 app.use("/api/admin", adminRoutes)
 app.use("/api/reports", reportsRoutes)
+app.use("/api/messages", messageRoutes)
 
 // 404 and error handlers
 app.use(notFoundHandler)
