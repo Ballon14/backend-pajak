@@ -1,6 +1,7 @@
 const express = require("express")
 const { body } = require("express-validator")
 const { authenticateToken, isAdmin } = require("../middlewares/auth")
+const upload = require("../middlewares/upload")
 const controller = require("../controllers/admin.controller")
 
 const router = express.Router()
@@ -67,6 +68,7 @@ router.post(
     "/tax-records",
     authenticateToken,
     isAdmin,
+    upload.single("payment_proof"),
     [
         body("user_id").notEmpty().withMessage("User harus dipilih"),
         body("name").notEmpty().withMessage("Nama harus diisi"),
@@ -82,6 +84,10 @@ router.post(
         body("status")
             .isIn(["belum_lunas", "proses", "lunas"])
             .withMessage("Status tidak valid"),
+        body("description").optional().isString(),
+        body("notes").optional().isString(),
+        body("due_date").optional().isISO8601(),
+        body("payment_date").optional().isISO8601(),
     ],
     controller.createTaxRecord
 )
@@ -96,6 +102,7 @@ router.put(
     "/tax-records/:id",
     authenticateToken,
     isAdmin,
+    upload.single("payment_proof"),
     [
         body("name").notEmpty().withMessage("Nama harus diisi"),
         body("address").notEmpty().withMessage("Alamat harus diisi"),
@@ -110,6 +117,10 @@ router.put(
         body("status")
             .isIn(["belum_lunas", "proses", "lunas"])
             .withMessage("Status tidak valid"),
+        body("description").optional().isString(),
+        body("notes").optional().isString(),
+        body("due_date").optional().isISO8601(),
+        body("payment_date").optional().isISO8601(),
     ],
     controller.updateTaxRecord
 )
