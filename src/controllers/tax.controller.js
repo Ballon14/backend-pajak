@@ -1,5 +1,7 @@
 const { validationResult } = require("express-validator")
 const TaxRecord = require("../models/TaxRecord")
+const fs = require("fs")
+const path = require("path")
 
 async function list(req, res) {
     try {
@@ -29,9 +31,17 @@ async function create(req, res) {
                 errors: errors.array(),
             })
         }
+
+        // Handle file upload
+        let paymentProofPath = null
+        if (req.file) {
+            paymentProofPath = `/uploads/${req.file.filename}`
+        }
+
         const taxRecord = new TaxRecord({
             ...req.body,
             user_id: req.user.user_id,
+            payment_proof: paymentProofPath,
         })
         await taxRecord.save()
         res.status(201).json({
@@ -81,9 +91,21 @@ async function update(req, res) {
                 errors: errors.array(),
             })
         }
+
+        // Handle file upload
+        let paymentProofPath = null
+        if (req.file) {
+            paymentProofPath = `/uploads/${req.file.filename}`
+        }
+
+        const updateData = { ...req.body }
+        if (paymentProofPath) {
+            updateData.payment_proof = paymentProofPath
+        }
+
         const taxRecord = await TaxRecord.findOneAndUpdate(
             { _id: req.params.id, user_id: req.user.user_id },
-            req.body,
+            updateData,
             { new: true }
         )
         if (!taxRecord) {
@@ -100,6 +122,42 @@ async function update(req, res) {
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat memperbarui data PBB",
+        })
+    }
+}
+
+async function uploadPaymentProof(req, res) {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "File bukti pembayaran tidak ditemukan",
+            })
+        }
+
+        const paymentProofPath = `/uploads/${req.file.filename}`
+
+        const taxRecord = await TaxRecord.findOneAndUpdate(
+            { _id: req.params.id, user_id: req.user.user_id },
+            { payment_proof: paymentProofPath },
+            { new: true }
+        )
+
+        if (!taxRecord) {
+            return res
+                .status(404)
+                .json({ success: false, message: "Data PBB tidak ditemukan" })
+        }
+
+        res.json({
+            success: true,
+            message: "Bukti pembayaran berhasil diunggah",
+            data: taxRecord,
+        })
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Terjadi kesalahan saat mengunggah bukti pembayaran",
         })
     }
 }
@@ -482,4 +540,5 @@ module.exports = {
     byYear,
     autoCreate,
     checkYear,
+    uploadPaymentProof,
 }

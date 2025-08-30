@@ -4,6 +4,7 @@ const helmet = require("helmet")
 const morgan = require("morgan")
 const compression = require("compression")
 const rateLimit = require("express-rate-limit")
+const path = require("path")
 
 const {
     corsOrigins,
@@ -20,13 +21,32 @@ const messageRoutes = require("./routes/message.routes")
 
 const app = express()
 
-app.set('trust proxy', 'loopback, linklocal, uniquelocal');
-
-// Security & basics
-app.use(helmet())
+// Security & basics with custom CSP for images
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                scriptSrc: ["'self'"],
+                imgSrc: [
+                    "'self'",
+                    "data:",
+                    "blob:",
+                    "http://localhost:8000",
+                    "http://localhost:5173",
+                ],
+                connectSrc: ["'self'"],
+                fontSrc: ["'self'"],
+                objectSrc: ["'none'"],
+                mediaSrc: ["'self'"],
+                frameSrc: ["'none'"],
+            },
+        },
+    })
+)
 app.use(compression())
 app.use(express.json())
-app.use(helmet())
 
 // CORS
 app.use(
@@ -40,6 +60,21 @@ app.use(
         },
         credentials: true,
     })
+)
+
+// Serve static files from uploads directory (after CORS)
+app.use(
+    "/uploads",
+    (req, res, next) => {
+        res.header("Access-Control-Allow-Origin", "*")
+        res.header("Access-Control-Allow-Methods", "GET")
+        res.header(
+            "Access-Control-Allow-Headers",
+            "Origin, X-Requested-With, Content-Type, Accept"
+        )
+        next()
+    },
+    express.static(path.join(__dirname, "../uploads"))
 )
 
 // Logger

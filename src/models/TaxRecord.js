@@ -21,6 +21,7 @@ const taxRecordSchema = new mongoose.Schema(
         },
         due_date: { type: Date, required: true },
         payment_date: { type: Date },
+        payment_proof: { type: String }, // URL/path to payment proof photo
         notes: { type: String },
     },
     { timestamps: true }

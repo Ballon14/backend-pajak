@@ -166,12 +166,10 @@ async function deleteUser(req, res) {
 
         // Check if user is trying to delete themselves
         if (String(userId) === String(req.user.user_id)) {
-            return res
-                .status(400)
-                .json({
-                    success: false,
-                    message: "Tidak dapat menghapus akun sendiri",
-                })
+            return res.status(400).json({
+                success: false,
+                message: "Tidak dapat menghapus akun sendiri",
+            })
         }
 
         // Delete all tax records associated with this user
@@ -266,6 +264,13 @@ async function getTaxRecordById(req, res) {
             return res
                 .status(404)
                 .json({ success: false, message: "Data pajak tidak ditemukan" })
+
+        console.log("Admin accessing tax record:", {
+            id: taxRecord._id,
+            hasPaymentProof: !!taxRecord.payment_proof,
+            paymentProofPath: taxRecord.payment_proof,
+        })
+
         const transformedRecord = {
             id: taxRecord._id,
             name: taxRecord.name,
@@ -280,6 +285,7 @@ async function getTaxRecordById(req, res) {
             due_date: taxRecord.due_date,
             payment_date: taxRecord.payment_date,
             notes: taxRecord.notes,
+            payment_proof: taxRecord.payment_proof,
             user: taxRecord.user_id
                 ? {
                       name: taxRecord.user_id.name,
@@ -291,6 +297,7 @@ async function getTaxRecordById(req, res) {
         }
         res.json({ success: true, data: transformedRecord })
     } catch (error) {
+        console.error("Error in getTaxRecordById:", error)
         res.status(500).json({
             success: false,
             message: "Terjadi kesalahan saat mengambil data pajak",
@@ -313,6 +320,12 @@ async function updateTaxRecord(req, res) {
             return res
                 .status(404)
                 .json({ success: false, message: "Data pajak tidak ditemukan" })
+
+        // Handle file upload
+        if (req.file) {
+            taxRecord.payment_proof = `/uploads/${req.file.filename}`
+        }
+
         const {
             name,
             address,
@@ -354,6 +367,7 @@ async function updateTaxRecord(req, res) {
                 due_date: taxRecord.due_date,
                 payment_date: taxRecord.payment_date,
                 notes: taxRecord.notes,
+                payment_proof: taxRecord.payment_proof,
             },
         })
     } catch (error) {
@@ -384,6 +398,12 @@ async function createTaxRecord(req, res) {
                 .json({ success: false, message: "User tidak ditemukan" })
         }
 
+        // Handle file upload
+        let paymentProofPath = null
+        if (req.file) {
+            paymentProofPath = `/uploads/${req.file.filename}`
+        }
+
         const taxRecord = new TaxRecord({
             user_id,
             name: req.body.name,
@@ -399,6 +419,7 @@ async function createTaxRecord(req, res) {
                 ? new Date(req.body.payment_date)
                 : null,
             notes: req.body.notes || "",
+            payment_proof: paymentProofPath,
         })
 
         await taxRecord.save()
@@ -418,6 +439,7 @@ async function createTaxRecord(req, res) {
                 due_date: taxRecord.due_date,
                 payment_date: taxRecord.payment_date,
                 notes: taxRecord.notes,
+                payment_proof: taxRecord.payment_proof,
             },
         })
     } catch (error) {
